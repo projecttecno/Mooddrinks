@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MoodDrink — Demo (Login Admin + Ordering)</title>
+  <style>
+    :root{
+      --bg:#fffafc; --text:#243142; --muted:#6b7280; --accent:#ff6fb5;
+      --card:#fff; --maxw:980px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg),#fff);color:var(--text);-webkit-font-smoothing:antialiased;}
+    .wrap{max-width:var(--maxw);margin:28px auto;padding:20px;}
+    header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand img{width:56px;height:56px;border-radius:12px;object-fit:cover;box-shadow:0 8px 26px rgba(255,111,181,0.12)}
+    h1{margin:0;font-size:20px}
+    .tag{margin:0;color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px}
+    .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+    .btn.ghost{background:transparent;color:var(--text);border:1px solid #eee}
+    .hero{margin:18px 0 6px}
+    .hero h2{font-size:32px;margin:0 0 6px}
+    .accent{background:linear-gradient(90deg,var(--accent),#ffd54f);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{color:var(--muted);margin:0 0 14px}
+    .grid{display:grid;grid-template-columns:1fr;gap:18px}
+    @media(min-width:900px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    .card{background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(36,49,66,0.06);overflow:hidden;display:flex;flex-direction:column;transition:transform .18s}
+    .card:hover{transform:translateY(-6px)}
+    .card-top{padding:20px;background:linear-gradient(135deg,#fff,#f7f7f7)}
+    .badge{font-weight:800;font-size:18px}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
+    .card-body{padding:16px;display:flex;flex-direction:column;gap:12px}
+    .motivation{margin:0;color:#374151;line-height:1.45}
+    .card-foot{display:flex;align-items:center;gap:12px;margin-top:auto}
+    .price{font-weight:800}
+    .qr{padding:8px 10px;border-radius:10px;border:1px dashed #eaeaea;color:var(--muted);text-decoration:none}
+    footer{margin-top:20px;color:var(--muted);text-align:center;font-size:14px;padding-bottom:20px}
+
+    /* modal & login */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(16,24,40,0.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal{background:#fff;border-radius:12px;padding:18px;max-width:720px;width:100%;box-shadow:0 12px 40px rgba(2,6,23,0.2);position:relative}
+    .modal .close{position:absolute;right:12px;top:8px;background:transparent;border:none;font-size:22px;cursor:pointer}
+    .spotify{margin-top:12px}
+    .spotify.empty{padding:18px;border-radius:8px;background:#fff7f9;color:var(--muted);text-align:center}
+
+    .admin-panel{margin-top:16px;padding:12px;border-radius:10px;background:#fbfdff;display:none}
+    .admin-grid{display:grid;gap:10px}
+    .admin-grid input, .admin-grid textarea, .admin-grid select{width:100%;padding:8px;border-radius:8px;border:1px solid #eee;font-size:14px}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;padding:8px 12px;border-radius:8px;display:none}
+
+    /* orders table */
+    .orders{margin-top:12px;border-collapse:collapse;width:100%}
+    .orders th, .orders td{border-bottom:1px solid #f1f1f1;padding:8px;text-align:left;font-size:13px}
+    .orders th{background:#fff}
+
+    /* order form */
+    .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    .form-row label{font-size:13px;color:var(--muted)}
+    .form-row input, .form-row textarea, .form-row select{padding:10px;border-radius:8px;border:1px solid #eee;font-size:14px}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* login form styles */
+    .login-panel{width:420px;max-width:92vw}
+    .form-inline{display:flex;gap:8px}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <!-- local logo path (use your local path) -->
+        <img id="siteLogo" src="logomooddrink.jpeg" alt="logo" onerror="this.style.display='none'">
+        <div>
+          <h1>MoodDrink</h1>
+          <p class="tag">Minum sesuai perasaanmu — Varian: Matcha & Coklat</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="adminBtn">Admin</button>
+        <button class="btn ghost" id="orderBtn">Order</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h2>Minuman yang <span class="accent">mengerti</span> mood kamu</h2>
+        <p class="lead">Pilih varian — scan QR — dengarkan playlist & baca motivasi.</p>
+      </section>
+
+      <section class="grid" id="cards"></section>
+
+      <div class="admin-panel" id="adminPanel" aria-hidden="true">
+        <h3>Admin — edit varian & pesanan</h3>
+        <div class="admin-grid" id="adminGrid"></div>
+
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="saveAdmin">Simpan</button>
+          <button class="btn ghost" id="resetAdmin">Reset</button>
+          <button class="btn ghost" id="exportOrders">Export Orders</button>
+          <button class="btn ghost" id="clearOrders">Clear Orders</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <h4>Daftar Pesanan</h4>
+          <table class="orders" id="ordersTable">
+            <thead>
+              <tr><th>ID</th><th>Nama</th><th>Varian</th><th>Qty</th><th>Waktu</th><th>Status</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      © <span id="year"></span> MoodDrink — Your Mood, Your Drink
+    </footer>
+  </div>
+
+  <!-- preview modal -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="close" id="closeModal">×</button>
+      <h3 id="mTitle"></h3>
+      <p id="mSubtitle" class="subtitle"></p>
+      <p id="mMotivation" class="motivation"></p>
+      <div id="mEmbed" class="spotify"></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <a id="openPlaylist" class="btn" target="_blank" rel="noreferrer">Buka Playlist</a>
+        <button class="btn ghost" id="closeBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- order modal -->
+  <div class="modal-backdrop" id="orderModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="close" id="closeOrder">×</button>
+      <h3>Buat Pesanan</h3>
+
+      <div id="orderForm">
+        <div class="form-row">
+          <label>Nama</label>
+          <input id="oName" placeholder="Nama pemesan">
+        </div>
+        <div class="form-row">
+          <label>Telepon</label>
+          <input id="oPhone" placeholder="08xx...">
+        </div>
+        <div class="form-row">
+          <label>Varian</label>
+          <select id="oVariant"></select>
+        </div>
+        <div class="form-row">
+          <label>Jumlah</label>
+          <input type="number" id="oQty" value="1" min="1">
+        </div>
+        <div class="form-row">
+          <label>Alamat / Catatan</label>
+          <textarea id="oNote" rows="3" placeholder="Contoh: Ambil di counter / Antar ke alamat"></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" id="submitOrder">Kirim Pesanan</button>
+          <button class="btn ghost" id="cancelOrder">Batal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- login modal -->
+  <div class="modal-backdrop" id="loginModal">
+    <div class="modal login-panel" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <button class="close" id="closeLogin">×</button>
+      <h3 id="loginTitle">Admin Login</h3>
+      <p class="muted">Masukkan username & password untuk mengakses Admin panel.</p>
+
+      <div class="form-row">
+        <label for="loginUser">Username</label>
+        <input type="text" id="loginUser" autocomplete="username" />
+      </div>
+      <div class="form-row">
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" />
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" id="loginSubmit">Login</button>
+        <button class="btn ghost" id="loginCancel">Batal</button>
+      </div>
+      <p class="muted" style="margin-top:10px">Default credential: <strong>admin / admin123</strong></p>
+      <div style="margin-top:10px">
+        <small class="muted">Anda dapat mengubah credential dari panel Admin setelah login.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Tersimpan</div>
+
+  <script>
+    /* Storage keys */
+    const STORAGE_KEY = 'mooddrink_static_v1';
+    const ORDERS_KEY = 'mooddrink_orders_v1';
+    const CRED_KEY = 'mooddrink_admin_cred_v1';
+
+    /* Default data */
+    const DEFAULT = [
+      { id:'matcha', title:'Santai Dulu', subtitle:'Matcha Drink — Chill & breathe', spotify:'', motivation:'Tarik napas...', price:'Rp 15.000', color:'#A5D6A7' },
+      { id:'coklat', title:'Anti Galau', subtitle:'Chocolate Drink — Smile mode on', spotify:'', motivation:'Senyum sedikit...', price:'Rp 15.000', color:'#F48FB1' }
+    ];
+
+    // load moods
+    let moods = DEFAULT;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) moods = JSON.parse(raw);
+    } catch(e){ console.warn(e) }
+
+    // load orders
+    let orders = [];
+    try { const r = localStorage.getItem(ORDERS_KEY); if(r) orders = JSON.parse(r); } catch(e){ console.warn(e) }
+
+    // load or set cred defaults
+    function getCred(){
+      try {
+        const c = localStorage.getItem(CRED_KEY);
+        if(c) return JSON.parse(c);
+      } catch(e){}
+      return { user: 'admin', pass: 'admin123' };
+    }
+    function saveCred(obj){ try { localStorage.setItem(CRED_KEY, JSON.stringify(obj)); } catch(e){} }
+
+    if(!localStorage.getItem(CRED_KEY)) saveCred(getCred());
+
+    /* DOM refs */
+    const cardsEl = document.getElementById('cards');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminBtn = document.getElementById('adminBtn');
+    const orderBtn = document.getElementById('orderBtn');
+    const loginModal = document.getElementById('loginModal');
+    const loginSubmit = document.getElementById('loginSubmit');
+    const loginCancel = document.getElementById('loginCancel');
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const closeLogin = document.getElementById('closeLogin');
+    const saveAdmin = document.getElementById('saveAdmin');
+    const resetAdmin = document.getElementById('resetAdmin');
+    const adminGrid = document.getElementById('adminGrid');
+    const exportOrdersBtn = document.getElementById('exportOrders');
+    const clearOrdersBtn = document.getElementById('clearOrders');
+    const ordersBody = document.getElementById('ordersBody');
+
+    const modal = document.getElementById('modal');
+    const orderModal = document.getElementById('orderModal');
+    const closeOrder = document.getElementById('closeOrder');
+    const submitOrder = document.getElementById('submitOrder');
+    const cancelOrder = document.getElementById('cancelOrder');
+    const variantSelect = document.getElementById('oVariant');
+
+    const toast = document.getElementById('toast');
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    /* Helpers */
+    function showToast(msg='Tersimpan'){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none',1600); }
+    function saveMoods(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(moods)); showToast('Moods saved'); } catch(e){ console.warn(e) } }
+    function saveOrders(){ try{ localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); } catch(e){ console.warn(e) } }
+
+    /* Render UI */
+    function renderCards(){
+      cardsEl.innerHTML = '';
+      moods.forEach(m=>{
+        const div = document.createElement('article');
+        div.className='card';
+        div.innerHTML = `
+          <div class="card-top" style="background:linear-gradient(135deg,#fff, ${m.color})">
+            <div class="badge">${m.title}</div>
+            <div class="subtitle">${m.subtitle}</div>
+          </div>
+          <div class="card-body">
+            <p class="motivation">${m.motivation}</p>
+            <div class="card-foot">
+              <div class="price">${m.price}</div>
+              <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+                <button class="btn" data-id="${m.id}" onclick="openModal('${m.id}')">Lihat</button>
+                <a class="qr" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(m.spotify||'')}" rel="noreferrer">QR</a>
+              </div>
+            </div>
+          </div>
+        `;
+        cardsEl.appendChild(div);
+      });
+
+      // populate order variants select when modal opens (we'll set options on open)
+    }
+
+    function renderAdmin(){
+      adminGrid.innerHTML = '';
+      moods.forEach((m, idx)=>{
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
+          <label>Title</label>
+          <input data-key="title" data-idx="${idx}" value="${m.title}">
+          <label>Subtitle</label>
+          <input data-key="subtitle" data-idx="${idx}" value="${m.subtitle}">
+          <label>Spotify Playlist URL</label>
+          <input data-key="spotify" data-idx="${idx}" value="${m.spotify}" placeholder="https://open.spotify.com/playlist/...">
+          <label>Motivation</label>
+          <input data-key="motivation" data-idx="${idx}" value="${m.motivation}">
+          <label>Price</label>
+          <input data-key="price" data-idx="${idx}" value="${m.price}">
+          <label>Color (hex)</label>
+          <input data-key="color" data-idx="${idx}" value="${m.color}">
+        `;
+        wrapper.className='admin-card';
+        adminGrid.appendChild(wrapper);
+      });
+
+      renderOrdersTable();
+    }
+
+    /* Orders table */
+    function renderOrdersTable(){
+      ordersBody.innerHTML = '';
+      if(orders.length === 0){
+        ordersBody.innerHTML = '<tr><td colspan="7" class="small">Belum ada pesanan.</td></tr>';
+        return;
+      }
+      orders.slice().reverse().forEach(o=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${o.id}</td>
+          <td>${o.name}</td>
+          <td>${o.variantTitle || o.variant}</td>
+          <td>${o.qty}</td>
+          <td>${new Date(o.ts).toLocaleString()}</td>
+          <td>${o.status}</td>
+          <td>
+            ${o.status === 'pending' ? `<button class="btn small" data-id="${o.id}" onclick="markComplete('${o.id}')">Mark Complete</button>` : ''}
+            <button class="btn ghost small" data-id="${o.id}" onclick="deleteOrder('${o.id}')">Hapus</button>
+          </td>
+        `;
+        ordersBody.appendChild(tr);
+      });
+    }
+
+    window.markComplete = function(id){
+      const idx = orders.findIndex(x=>x.id===id);
+      if(idx === -1) return;
+      orders[idx].status = 'completed';
+      saveOrders();
+      renderOrdersTable();
+      showToast('Pesanan ditandai selesai');
+    }
+
+    window.deleteOrder = function(id){
+      if(!confirm('Hapus pesanan ini?')) return;
+      orders = orders.filter(x=>x.id!==id);
+      saveOrders();
+      renderOrdersTable();
+      showToast('Pesanan dihapus');
+    }
+
+    exportOrdersBtn.addEventListener('click', ()=>{
+      if(orders.length === 0){ alert('Tidak ada pesanan untuk di-export'); return; }
+      const blob = new Blob([JSON.stringify(orders, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'mooddrink-orders.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    clearOrdersBtn.addEventListener('click', ()=>{
+      if(!confirm('Hapus semua pesanan?')) return;
+      orders = [];
+      saveOrders();
+      renderOrdersTable();
+      showToast('Semua pesanan dihapus');
+    });
+
+    /* Modal preview */
+    function getById(id){ return moods.find(x=>x.id===id) }
+    window.openModal = function(id){
+      const m = getById(id);
+      if(!m) return;
+      document.getElementById('mTitle').textContent = m.title;
+      document.getElementById('mSubtitle').textContent = m.subtitle;
+      document.getElementById('mMotivation').textContent = m.motivation;
+      const embedEl = document.getElementById('mEmbed');
+      embedEl.innerHTML = '';
+      if(m.spotify && m.spotify.includes('open.spotify.com')){
+        const pid = m.spotify.split('/').pop().split('?')[0];
+        embedEl.innerHTML = '<iframe src="https://open.spotify.com/embed/playlist/'+pid+'" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media"></iframe>';
+      } else {
+        embedEl.innerHTML = '<div class="spotify empty">Playlist belum diatur.</div>';
+      }
+      document.getElementById('openPlaylist').href = m.spotify || '#';
+      modal.style.display='flex';
+    }
+    document.getElementById('closeModal').onclick = ()=>modal.style.display='none';
+    document.getElementById('closeBtn').onclick = ()=>modal.style.display='none';
+    modal.onclick = ()=>modal.style.display='none';
+    document.querySelector('#modal .modal').onclick = (e)=>e.stopPropagation();
+
+    /* Order modal handling */
+    orderBtn.addEventListener('click', ()=> {
+      // populate variants
+      const sel = document.getElementById('oVariant');
+      sel.innerHTML = '';
+      moods.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.title} — ${m.price}`;
+        sel.appendChild(opt);
+      });
+      orderModal.style.display = 'flex';
+    });
+    closeOrder.addEventListener('click', ()=> orderModal.style.display='none');
+    cancelOrder.addEventListener('click', ()=> orderModal.style.display='none');
+    orderModal.onclick = ()=> orderModal.style.display='none';
+    document.querySelector('#orderModal .modal').onclick = (e)=>e.stopPropagation();
+
+    submitOrder.addEventListener('click', ()=>{
+      const name = document.getElementById('oName').value.trim();
+      const phone = document.getElementById('oPhone').value.trim();
+      const variant = document.getElementById('oVariant').value;
+      const qty = Number(document.getElementById('oQty').value) || 1;
+      const note = document.getElementById('oNote').value.trim();
+
+      if(!name || !phone){ alert('Isi nama dan telepon'); return; }
+
+      const v = getById(variant);
+      const order = {
+        id: 'ORD' + Date.now().toString().slice(-6),
+        ts: Date.now(),
+        name, phone, variant,
+        variantTitle: v ? v.title : variant,
+        qty, note,
+        status: 'pending'
+      };
+
+      orders.push(order);
+      saveOrders();
+      orderModal.style.display='none';
+      document.getElementById('oName').value=''; document.getElementById('oPhone').value=''; document.getElementById('oQty').value='1'; document.getElementById('oNote').value='';
+      showToast('Pesanan terkirim');
+      if(adminPanel.style.display === 'block') renderOrdersTable();
+    });
+
+    /* Admin login flow */
+    adminBtn.addEventListener('click', ()=>{
+      // if already logged in, toggle admin panel
+      if(window._isAdmin){
+        adminPanel.style.display = adminPanel.style.display === 'block' ? 'none' : 'block';
+        if(adminPanel.style.display === 'block') renderAdmin();
+        return;
+      }
+      // show login dialog
+      loginModal.style.display = 'flex';
+      loginUser.value=''; loginPass.value=''; loginUser.focus();
+    });
+
+    closeLogin.addEventListener('click', ()=> loginModal.style.display='none');
+    loginCancel.addEventListener('click', ()=> loginModal.style.display='none');
+
+    loginSubmit.addEventListener('click', ()=>{
+      const cred = getCred();
+      const u = loginUser.value.trim(), p = loginPass.value;
+      if(u === cred.user && p === cred.pass){
+        loginModal.style.display='none';
+        window._isAdmin = true;
+        adminPanel.style.display = 'block';
+        renderAdmin();
+        showToast('Login berhasil');
+      } else {
+        alert('Username / password salah');
+      }
+    });
+
+    /* Admin actions: save / reset moods */
+    saveAdmin.addEventListener('click', ()=>{
+      const inputs = adminGrid.querySelectorAll('input[data-key]');
+      inputs.forEach(inp=>{
+        const key = inp.dataset.key;
+        const idx = Number(inp.dataset.idx);
+        moods[idx][key] = inp.value;
+      });
+      saveMoods();
+      renderCards();
+    });
+
+    resetAdmin.addEventListener('click', ()=>{
+      if(!confirm('Reset ke default?')) return;
+      moods = JSON.parse(JSON.stringify(DEFAULT));
+      saveMoods();
+      renderCards();
+      renderAdmin();
+    });
+
+    // credentials change within admin panel
+    // we add simple UI dynamically inside admin panel
+    function addCredControls(){
+      // avoid duplicate
+      if(document.getElementById('credBox')) return;
+      const box = document.createElement('div');
+      box.id = 'credBox';
+      box.style.marginTop = '12px';
+      box.innerHTML = `
+        <h4>Credentials</h4>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="newUser" placeholder="new username" style="padding:8px;border-radius:8px;border:1px solid #eee">
+          <input id="newPass" placeholder="new password" style="padding:8px;border-radius:8px;border:1px solid #eee">
+          <button class="btn" id="saveCredBtn">Save Cred</button>
+        </div>
+        <div style="margin-top:8px;"><small class="muted">Default: admin / admin123</small></div>
+      `;
+      adminPanel.appendChild(box);
+      document.getElementById('saveCredBtn').addEventListener('click', ()=>{
+        const u = document.getElementById('newUser').value.trim();
+        const p = document.getElementById('newPass').value.trim();
+        if(!u || !p){ alert('Isi username & password baru'); return; }
+        saveCred({ user:u, pass:p });
+        showToast('Credentials updated');
+      });
+    }
+
+    // call addCredControls when admin opened
+    // renderAdmin already called when opened, so call after a short delay to ensure adminPanel present
+    const origRenderAdmin = renderAdmin;
+    renderAdmin = function(){
+      origRenderAdmin();
+      addCredControls();
+    }
+
+    /* Orders management functions already exposed in global earlier; ensure they work: */
+    window.markComplete = function(id){
+      const idx = orders.findIndex(x=>x.id===id);
+      if(idx === -1) return;
+      orders[idx].status = 'completed';
+      saveOrders();
+      renderOrdersTable();
+      showToast('Pesanan ditandai selesai');
+    }
+    window.deleteOrder = function(id){
+      if(!confirm('Hapus pesanan ini?')) return;
+      orders = orders.filter(x=>x.id!==id);
+      saveOrders();
+      renderOrdersTable();
+      showToast('Pesanan dihapus');
+    }
+
+    exportOrdersBtn.addEventListener('click', ()=>{
+      if(orders.length === 0){ alert('Tidak ada pesanan untuk di-export'); return; }
+      const blob = new Blob([JSON.stringify(orders, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'mooddrink-orders.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    clearOrdersBtn.addEventListener('click', ()=>{
+      if(!confirm('Hapus semua pesanan?')) return;
+      orders = [];
+      saveOrders();
+      renderOrdersTable();
+      showToast('Semua pesanan dihapus');
+    });
+
+    /* Init UI */
+    renderCards();
+
+    // Expose some helpers for debugging
+    window._mooddrink = { moods, orders, saveMoods, saveOrders, getCred };
+
+  </script>
+</body>
+</html>
