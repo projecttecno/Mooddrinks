@@ -75,7 +75,7 @@
         <img id="siteLogo" src="logomooddrink.jpeg" alt="logo" onerror="this.style.display='none'">
         <div>
           <h1>MoodDrink</h1>
-          <p class="tag">Minum sesuai perasaanmu — Varian: Matcha & Coklat</p>
+          <p class="tag">Minum sesuai perasaanmu — Varian: Cookies & Cream & Apple Tea</p>
         </div>
       </div>
 
@@ -208,8 +208,8 @@
 
     /* Default data */
     const DEFAULT = [
-      { id:'matcha', title:'Santai Dulu', subtitle:'Matcha Drink — Chill & breathe', spotify:'', motivation:'Tarik napas...', price:'Rp 15.000', color:'#A5D6A7' },
-      { id:'coklat', title:'Anti Galau', subtitle:'Chocolate Drink — Smile mode on', spotify:'', motivation:'Senyum sedikit...', price:'Rp 15.000', color:'#F48FB1' }
+      { id:'cookies', title:'Cookies & Cream', subtitle:'Cookies & Cream — Sweet & Crunchy', spotify:'', motivation:'Nikmati manisnya dan rileks sejenak.', price:'Rp 7.000', color:'#FBE9E7' },
+      { id:'appletea', title:'Apple Tea', subtitle:'Apple Tea — Fresh & Fruity', spotify:'', motivation:'Segarkan pikiranmu dengan kesegaran apel.', price:'Rp 7.000', color:'#FFF3E0' }
     ];
 
     // load moods
@@ -273,7 +273,7 @@
       cardsEl.innerHTML = '';
       moods.forEach(m=>{
         const div = document.createElement('article');
-        div.className='card';
+        div.className = 'card';
         div.innerHTML = `
           <div class="card-top" style="background:linear-gradient(135deg,#fff, ${m.color})">
             <div class="badge">${m.title}</div>
@@ -306,7 +306,7 @@
           <label>Subtitle</label>
           <input data-key="subtitle" data-idx="${idx}" value="${m.subtitle}">
           <label>Spotify Playlist URL</label>
-          <input data-key="spotify" data-idx="${idx}" value="${m.spotify}" placeholder="https://open.spotify.com/playlist/...">
+          <input data-key="spotify" data-idx="${idx}" value="${m.spotify}" placeholder="https://open.spotify.com/playlist...">
           <label>Motivation</label>
           <input data-key="motivation" data-idx="${idx}" value="${m.motivation}">
           <label>Price</label>
